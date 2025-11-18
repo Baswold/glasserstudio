@@ -27,6 +27,16 @@ struct SettingsView: View {
                     Label("Apps", systemImage: "app.badge.checkmark")
                 }
 
+            StylePresetsView()
+                .tabItem {
+                    Label("Presets", systemImage: "slider.horizontal.3")
+                }
+
+            BatchProcessingView()
+                .tabItem {
+                    Label("Batch", systemImage: "square.stack.3d.up.fill")
+                }
+
             LogViewerView()
                 .tabItem {
                     Label("Logs", systemImage: "doc.text.magnifyingglass")
@@ -37,7 +47,7 @@ struct SettingsView: View {
                     Label("About", systemImage: "info.circle")
                 }
         }
-        .frame(width: 600, height: 400)
+        .frame(width: 700, height: 500)
     }
 }
 
