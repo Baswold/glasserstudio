@@ -2,10 +2,12 @@ import SwiftUI
 
 struct ContentView: View {
     @StateObject private var iconManager = IconManager.shared
+    @StateObject private var systemPrefs = SystemPreferences.shared
     @State private var isProcessing = false
     @State private var statusMessage = ""
     @State private var isHoveringButton = false
-    @State private var currentIconStyle = SystemPreferences.shared.iconStyle
+    @State private var showStyleChangeAlert = false
+    @State private var previousIconStyle: IconStyle? = nil
     
     var body: some View {
         ZStack {
@@ -80,17 +82,14 @@ struct ContentView: View {
                                 .font(.system(size: 8))
                             
                             HStack(spacing: 4) {
-                                Image(systemName: iconStyleIcon(currentIconStyle))
+                                Image(systemName: iconStyleIcon(systemPrefs.iconStyle))
                                     .font(.system(size: 10))
-                                Text(currentIconStyle.rawValue)
+                                Text(systemPrefs.iconStyle.rawValue)
                                     .font(.system(size: 12, weight: .medium))
                             }
                             .foregroundStyle(.secondary)
                         }
                         .transition(.opacity.combined(with: .scale(scale: 0.9)))
-                        .onAppear {
-                            currentIconStyle = SystemPreferences.shared.iconStyle
-                        }
                     }
                     
                     // Apply Button
@@ -147,8 +146,32 @@ struct ContentView: View {
                         }
                     }
                     
+                    // Progress tracking
+                    if isProcessing {
+                        VStack(spacing: 12) {
+                            ProgressView(value: iconManager.processingProgress)
+                                .progressViewStyle(.linear)
+
+                            HStack {
+                                Text("Processing: \(iconManager.currentlyProcessing)")
+                                    .font(.system(size: 10))
+                                    .foregroundStyle(.secondary)
+                                    .lineLimit(1)
+
+                                Spacer()
+
+                                Text("\(iconManager.processedApps)/\(iconManager.totalApps)")
+                                    .font(.system(size: 10, weight: .medium))
+                                    .foregroundStyle(.secondary)
+                                    .monospacedDigit()
+                            }
+                        }
+                        .padding(.top, 8)
+                        .transition(.opacity.combined(with: .scale(scale: 0.95)))
+                    }
+
                     // Status message
-                    if !statusMessage.isEmpty {
+                    if !statusMessage.isEmpty && !isProcessing {
                         Text(statusMessage)
                             .font(.system(size: 11))
                             .foregroundStyle(.secondary)
@@ -175,15 +198,41 @@ struct ContentView: View {
             }
         }
         .frame(width: 380, height: 480)
+        .onReceive(NotificationCenter.default.publisher(for: SystemPreferences.didChangeNotification)) { notification in
+            handleSystemPreferencesChange(notification)
+        }
+        .alert("System Icon Style Changed", isPresented: $showStyleChangeAlert) {
+            Button("Reapply Now") {
+                applyEffect()
+            }
+            Button("Later", role: .cancel) { }
+        } message: {
+            if let oldStyle = previousIconStyle {
+                Text("Your system icon style changed from \(oldStyle.rawValue) to \(systemPrefs.iconStyle.rawValue). Would you like to reapply the effect with the new style?")
+            }
+        }
     }
     
+    private func handleSystemPreferencesChange(_ notification: Notification) {
+        guard let userInfo = notification.userInfo,
+              let oldStyle = userInfo["oldStyle"] as? IconStyle,
+              let newStyle = userInfo["newStyle"] as? IconStyle,
+              oldStyle != newStyle else {
+            return
+        }
+
+        // Only show alert if effect is enabled and not currently processing
+        if iconManager.isEnabled && !isProcessing {
+            previousIconStyle = oldStyle
+            showStyleChangeAlert = true
+            statusMessage = "System icon style changed to \(newStyle.rawValue)"
+        }
+    }
+
     private func applyEffect() {
         isProcessing = true
-        statusMessage = "Processing icons..."
-        
-        // Refresh icon style
-        currentIconStyle = SystemPreferences.shared.iconStyle
-        
+        statusMessage = "Processing icons with \(systemPrefs.iconStyle.rawValue) style..."
+
         Task {
             let result = await iconManager.processAllIcons()
             await MainActor.run {

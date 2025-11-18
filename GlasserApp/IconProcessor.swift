@@ -4,28 +4,37 @@ import AppKit
 
 class IconProcessor {
     static let shared = IconProcessor()
-    
+
     private let context = CIContext()
     private let systemPrefs = SystemPreferences.shared
+    private let cache = IconCache.shared
+    private let logger = Logger.shared
     
     /// Applies liquid glass effect to an icon, respecting system icon style
-    func applyLiquidGlassEffect(to image: NSImage, intensity: Double = 0.8) -> NSImage? {
+    func applyLiquidGlassEffect(
+        to image: NSImage,
+        intensity: Double = 0.8,
+        style: IconStyle? = nil
+    ) -> NSImage? {
         guard let cgImage = image.cgImage(forProposedRect: nil, context: nil, hints: nil) else {
             return nil
         }
-        
+
         let ciImage = CIImage(cgImage: cgImage)
-        
-        // Apply filters based on system icon style
-        guard let processedImage = applyFilters(to: ciImage, intensity: intensity, style: systemPrefs.iconStyle) else {
+
+        // Use provided style or fall back to system style
+        let effectiveStyle = style ?? systemPrefs.iconStyle
+
+        // Apply filters based on icon style
+        guard let processedImage = applyFilters(to: ciImage, intensity: intensity, style: effectiveStyle) else {
             return nil
         }
-        
+
         // Convert back to NSImage
         guard let outputCGImage = context.createCGImage(processedImage, from: processedImage.extent) else {
             return nil
         }
-        
+
         let finalImage = NSImage(cgImage: outputCGImage, size: image.size)
         return finalImage
     }
@@ -189,17 +198,55 @@ class IconProcessor {
     }
     
     /// Process icon and save to file
-    func processAndSaveIcon(inputPath: String, outputPath: String, intensity: Double = 0.8) -> Bool {
+    func processAndSaveIcon(
+        inputPath: String,
+        outputPath: String,
+        intensity: Double = 0.8,
+        style: IconStyle? = nil,
+        bundleIdentifier: String? = nil
+    ) -> Bool {
+        // Use provided style or fall back to system style
+        let effectiveStyle = style ?? systemPrefs.iconStyle
+
+        // Try to get from cache first
+        if let bundleId = bundleIdentifier,
+           let cachedImage = cache.getCachedIcon(
+               for: bundleId,
+               iconPath: inputPath,
+               style: effectiveStyle,
+               intensity: intensity
+           ) {
+            logger.debug("Using cached icon for: \(bundleId)", category: "IconProcessor")
+            return saveImage(cachedImage, to: outputPath)
+        }
+
+        // Load original image
         guard let image = NSImage(contentsOfFile: inputPath) else {
-            print("Failed to load image from: \(inputPath)")
+            logger.error("Failed to load image from: \(inputPath)", category: "IconProcessor")
             return false
         }
-        
-        guard let processedImage = applyLiquidGlassEffect(to: image, intensity: intensity) else {
-            print("Failed to process image: \(inputPath)")
+
+        // Process the image
+        guard let processedImage = applyLiquidGlassEffect(
+            to: image,
+            intensity: intensity,
+            style: effectiveStyle
+        ) else {
+            logger.error("Failed to process image: \(inputPath)", category: "IconProcessor")
             return false
         }
-        
+
+        // Cache the processed image
+        if let bundleId = bundleIdentifier {
+            _ = cache.cacheIcon(
+                processedImage,
+                for: bundleId,
+                iconPath: inputPath,
+                style: effectiveStyle,
+                intensity: intensity
+            )
+        }
+
         return saveImage(processedImage, to: outputPath)
     }
     
