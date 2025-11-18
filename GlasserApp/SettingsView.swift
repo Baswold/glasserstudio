@@ -12,7 +12,7 @@ struct SettingsView: View {
                 .tabItem {
                     Label("General", systemImage: "gear")
                 }
-            
+
             EffectSettingsView(
                 glassIntensity: $glassIntensity,
                 saturationBoost: $saturationBoost,
@@ -21,20 +21,39 @@ struct SettingsView: View {
             .tabItem {
                 Label("Effects", systemImage: "sparkles")
             }
-            
+
+            AppOverridesView()
+                .tabItem {
+                    Label("Apps", systemImage: "app.badge.checkmark")
+                }
+
+            StylePresetsView()
+                .tabItem {
+                    Label("Presets", systemImage: "slider.horizontal.3")
+                }
+
+            BatchProcessingView()
+                .tabItem {
+                    Label("Batch", systemImage: "square.stack.3d.up.fill")
+                }
+
+            LogViewerView()
+                .tabItem {
+                    Label("Logs", systemImage: "doc.text.magnifyingglass")
+                }
+
             AboutView()
                 .tabItem {
                     Label("About", systemImage: "info.circle")
                 }
         }
-        .frame(width: 480, height: 360)
+        .frame(width: 700, height: 500)
     }
 }
 
 struct GeneralSettingsView: View {
     @StateObject private var iconManager = IconManager.shared
-    @State private var iconStyle = SystemPreferences.shared.iconStyle
-    @State private var accentColor = SystemPreferences.shared.accentColor
+    @StateObject private var systemPrefs = SystemPreferences.shared
     
     var body: some View {
         VStack(alignment: .leading, spacing: 24) {
@@ -73,11 +92,11 @@ struct GeneralSettingsView: View {
                     Text("Current style:")
                         .font(.system(size: 12))
                         .foregroundStyle(.secondary)
-                    
+
                     HStack(spacing: 4) {
-                        Image(systemName: iconStyleIcon(iconStyle))
+                        Image(systemName: iconStyleIcon(systemPrefs.iconStyle))
                             .font(.system(size: 11))
-                        Text(iconStyle.rawValue)
+                        Text(systemPrefs.iconStyle.rawValue)
                             .font(.system(size: 12, weight: .medium))
                     }
                     .padding(.horizontal, 8)
@@ -85,15 +104,15 @@ struct GeneralSettingsView: View {
                     .background(.quaternary.opacity(0.5))
                     .cornerRadius(6)
                 }
-                
-                if iconStyle == .tinted {
+
+                if systemPrefs.iconStyle == .tinted {
                     HStack(spacing: 8) {
                         Text("Tint color:")
                             .font(.system(size: 12))
                             .foregroundStyle(.secondary)
-                        
+
                         Circle()
-                            .fill(Color(nsColor: accentColor))
+                            .fill(Color(nsColor: systemPrefs.accentColor))
                             .frame(width: 16, height: 16)
                             .overlay(
                                 Circle()
@@ -130,14 +149,6 @@ struct GeneralSettingsView: View {
         }
         .padding(32)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .onAppear {
-            refreshSystemSettings()
-        }
-    }
-    
-    private func refreshSystemSettings() {
-        iconStyle = SystemPreferences.shared.iconStyle
-        accentColor = SystemPreferences.shared.accentColor
     }
     
     private func iconStyleIcon(_ style: IconStyle) -> String {

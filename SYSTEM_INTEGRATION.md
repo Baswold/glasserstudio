@@ -138,19 +138,53 @@ Effect becomes **more vibrant** and saturated
 
 ## Limitations
 
-- **Style changes** require re-applying the effect (click "Apply Effect")
 - **System icons** may not change (SIP protected)
 - **Folder color** preference may not be accessible on all macOS versions
 - **Style detection** works best on macOS 14.0+ (Sonoma)
 
+## Completed Enhancements ✨
+
+The following features have been successfully implemented:
+
+- ✅ **Auto-refresh on system style change** - App automatically detects when you change macOS icon appearance settings and prompts to reapply effects
+  - Uses DistributedNotificationCenter to monitor system preferences
+  - Polls for changes every 5 seconds as fallback
+  - Shows alert dialog when style changes
+
+- ✅ **Per-app style overrides** - Customize effects for individual applications
+  - Full UI for managing app-specific settings
+  - Override icon style, intensity, and other parameters per app
+  - Import apps from /Applications or ~/Applications
+  - Enable/disable overrides per app
+
+- ✅ **Comprehensive error logging** - Track and debug issues with detailed logs
+  - Multiple log levels (DEBUG, INFO, WARNING, ERROR, CRITICAL)
+  - File-based logging with automatic rotation
+  - Built-in log viewer in Settings
+  - Export logs for troubleshooting
+
+- ✅ **Progress tracking** - Detailed status updates during processing
+  - Real-time progress bar with percentage
+  - Shows currently processing app name
+  - Displays count (e.g., "45/127 apps processed")
+  - Published properties for reactive UI updates
+
+- ✅ **Icon cache system** - Dramatically faster reprocessing
+  - Caches processed icons by style and intensity
+  - Automatic cache invalidation when source icons change
+  - SHA-256 hashing for cache keys
+  - Automatic cleanup when cache exceeds 500MB
+  - 30-day cache expiration
+
 ## Future Enhancements
 
 Potential improvements:
-- [ ] Auto-refresh on system style change (DistributedNotificationCenter)
-- [ ] Per-app style overrides
 - [ ] Live preview of different styles
 - [ ] Custom style presets
+- [ ] Batch processing with cancellation support
+- [ ] Undo/redo functionality
+- [ ] Performance metrics and monitoring
 
 ---
 
-**Status:** ✅ Fully implemented and integrated
+**Status:** ✅ Fully implemented and significantly enhanced!
